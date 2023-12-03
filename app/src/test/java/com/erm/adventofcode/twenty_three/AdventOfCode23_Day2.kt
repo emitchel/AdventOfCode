@@ -46,6 +46,7 @@ class AdventOfCode23_Day2 {
             var minBlue = 0L
             var minGreen = 0L
 
+            // TODO do this ahead of time while generating the game
             sets.forEach { gameSet ->
                 gameSet.gameCubes.forEach { gameCube ->
                     val count = gameCube.count
