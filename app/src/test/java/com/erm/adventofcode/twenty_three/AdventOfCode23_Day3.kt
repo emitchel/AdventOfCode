@@ -33,7 +33,27 @@ class AdventOfCode23_Day3 {
         val char: Char,
         val x: Int,
         val y: Int
-    )
+    ) {
+        fun gearRatioValue(partNumbers: List<PartNumber>): Long? {
+            val validYPositions = listOf(y, y - 1, y + 1)
+            val validXPositions = listOf(x, x - 1, x + 1)
+
+            val around = partNumbers.filter { partNumber ->
+                validYPositions.contains(partNumber.y)
+                    && partNumber.xRange.toList().any {
+                    validXPositions.contains(it)
+                }
+            }
+
+            return if (around.size == 2) {
+                val gearRatio = around[0].value * around[1].value
+                println("$this has exactly two part numbers, ${around[0]} and ${around[1]}, gearRatio = $gearRatio")
+                gearRatio
+            } else {
+                null
+            }
+        }
+    }
 
     @Test
     fun day3_pt1() {
@@ -42,10 +62,6 @@ class AdventOfCode23_Day3 {
         val symbols = mutableListOf<Symbol>()
 
         readLinesFromTextInput("day3input.txt") { schematicLine ->
-
-            if(schematicLine == ".241....966...........%.........804...............589....554...307.+....#.505..........&....332...449.190......780........*322..........-540") {
-                println("")
-            }
 
             var numberInMotion: String? = null
             val row = schematicLine.mapIndexed { index, char ->
@@ -116,6 +132,86 @@ class AdventOfCode23_Day3 {
 
         println("sumbofvalidpartnumbers = $sumOfValidPartNumbers")
 
-        assert(sumOfValidPartNumbers == 4361L)
+        assert(sumOfValidPartNumbers == 554003L)
+    }
+
+    @Test
+    fun day3_pt2() {
+        val schematic = mutableListOf<List<Char>>()
+        val partNumbers = mutableListOf<PartNumber>()
+        val symbols = mutableListOf<Symbol>()
+
+        readLinesFromTextInput("day3input.txt") { schematicLine ->
+
+            var numberInMotion: String? = null
+            val row = schematicLine.mapIndexed { index, char ->
+                if (char.isDigit) {
+                    // current number!
+                    if (numberInMotion == null) {
+                        numberInMotion = char.toString()
+                    } else {
+                        numberInMotion += char.toString()
+                    }
+
+                    if (index == schematicLine.length - 1) {
+                        val number = numberInMotion!!.toLong()
+                        partNumbers.add(
+                            PartNumber(
+                                number,
+                                Range(index - numberInMotion!!.length + 1, index),
+                                schematic.size
+                            ).also {
+                                println("Created PartNumber $it")
+                            }
+                        )
+                    }
+                } else {
+                    if (numberInMotion != null) {
+                        // create new part number
+                        val number = numberInMotion!!.toLong()
+                        partNumbers.add(
+                            PartNumber(
+                                number,
+                                Range(index - numberInMotion!!.length, index - 1),
+                                schematic.size
+                            ).also {
+                                println("Created PartNumber $it")
+                            }
+                        )
+                    }
+                    // Symbol!
+
+                    if (char != '.') {
+                        symbols.add(
+                            Symbol(
+                                char,
+                                index,
+                                schematic.size
+                            ).also {
+                                println("Created Symbol $it")
+                            })
+                    }
+
+                    numberInMotion = null
+                }
+
+                // still create the schematic
+                char
+            }
+            schematic.add(row)
+            true
+        }
+
+        var sumOfGearRatios = 0L
+
+        symbols.forEach { symbol ->
+            symbol.gearRatioValue(partNumbers)?.let { gearRatio ->
+                sumOfGearRatios += gearRatio
+            }
+        }
+
+        println("sumOfGearRatios = $sumOfGearRatios")
+
+        assert(sumOfGearRatios == 467835L)
     }
 }
