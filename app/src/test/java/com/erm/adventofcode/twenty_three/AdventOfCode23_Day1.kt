@@ -1,7 +1,6 @@
 package com.erm.adventofcode.twenty_three
 
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import com.erm.adventofcode.twenty_three.Util.readLinesFromTextInput
 import org.junit.Test
 
 /**
@@ -9,7 +8,7 @@ import org.junit.Test
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
-class AdventOfCode23 {
+class AdventOfCode23_Day1 {
     @Test
     fun day1_part1() {
         var value = 0L
@@ -105,27 +104,4 @@ class AdventOfCode23 {
         assert(value == 54265L)
     }
 
-    private fun readLinesFromTextInput(
-        fileName: String,
-        // return true to continue streaming
-        readNewLine: (String) -> Boolean
-    ) {
-        val inputStream = this.javaClass.classLoader?.getResourceAsStream(fileName)
-        inputStream?.use { stream ->
-            InputStreamReader(stream).use { isr ->
-                BufferedReader(isr).use { reader ->
-                    var line: String? = null
-                    var shouldContinue = true
-                    while (shouldContinue && reader.readLine().also { line = it } != null) {
-                        // Process each line character by character
-                        shouldContinue = readNewLine(line!!)
-                        // Here you know a new line was just finished
-                    }
-                }
-            }
-        }
-    }
-
-    private val String.allDigits: Boolean
-        get() = this.all { listOf('1', '2', '3', '4', '5', '6', '7', '8', '9').contains(it) }
 }
