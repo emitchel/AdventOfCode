@@ -8,7 +8,7 @@ import org.junit.Test
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
-class AdventOfCode23_Day1 {
+class Day1 {
     @Test
     fun day1_part1() {
         var value = 0L

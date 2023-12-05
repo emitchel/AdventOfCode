@@ -9,7 +9,7 @@ import org.junit.Test
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
-class AdventOfCode23_Day2 {
+class Day2 {
     enum class Color(val value: String, val max: Int) {
         RED("red", 12),
         GREEN("green", 13),

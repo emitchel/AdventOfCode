@@ -3,7 +3,7 @@ package com.erm.adventofcode.twenty_three
 import com.erm.adventofcode.twenty_three.Util.readLinesFromTextInput
 import org.junit.Test
 
-class AdventOfCode23_Day3 {
+class Day3 {
 
     data class Range(val from: Int, val to: Int) {
         fun toList() = (from..to).toList()

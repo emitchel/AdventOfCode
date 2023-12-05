@@ -4,7 +4,7 @@ import com.erm.adventofcode.twenty_three.Util.readLinesFromTextInput
 import kotlin.math.pow
 import org.junit.Test
 
-class AdventOfCode23_Day4 {
+class Day4 {
 
     data class Card(
         val id: Int,
