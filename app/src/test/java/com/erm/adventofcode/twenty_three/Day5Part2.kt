@@ -1,13 +1,15 @@
 package com.erm.adventofcode.twenty_three
 
 import com.erm.adventofcode.twenty_three.Util.readLinesFromTextInput
+import java.lang.Long.max
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class Day5Part2 {
 
     data class Map(
-        val source: String = "",
-        val destination: String = "",
+        val sourceName: String = "",
+        val destinationName: String = "",
         val mappings: List<String> = emptyList()
     ) {
 
@@ -20,7 +22,20 @@ class Day5Part2 {
         )
 
         val destinationToSourceRanges = mutableListOf<DestinationToSourceRange>()
+
+        fun getUpperBoundOfRange(): Long {
+            val maxSource = destinationToSourceRanges.maxBy { it.range + it.sourceStart }.run {
+                range + sourceStart
+            }
+            val maxDestination =
+                destinationToSourceRanges.maxBy { it.range + it.destinationStart }.run {
+                    range + destinationStart
+                }
+            return max(maxSource, maxDestination)
+        }
+
         fun buildKnownRanges() {
+            if (destinationToSourceRanges.isNotEmpty()) return
             mappings.forEach { mapping ->
                 // destinationLocation, sourceLocation, range
                 // 50 98 2
@@ -38,21 +53,14 @@ class Day5Part2 {
                         range = range
                     )
                 )
-
-                // cant do this, numbers too large
-                // for (step in 0 until range) {
-                //     knownMappingSourceToRange[sourceStart + step] = destinationStart + step
-                // }
-
-                println("")
-
             }
         }
 
+
         fun destination(incomingSource: String, sourceLocation: Long): Long {
 
-            if (incomingSource != source) {
-                throw IllegalStateException("Can't map $incomingSource to this $source-to-$destination map")
+            if (incomingSource != sourceName) {
+                throw IllegalStateException("Can't map $incomingSource to this $sourceName-to-$destinationName map")
             }
 
             buildKnownRanges()
@@ -62,19 +70,24 @@ class Day5Part2 {
             }?.let {
                 val difference = sourceLocation - it.sourceStart
                 return (it.destinationStart + difference).also {
-                    println("$incomingSource $sourceLocation maps to $destination $it")
+                    println("$incomingSource $sourceLocation maps to $destinationName $it")
                 }
             } ?: run {
                 return sourceLocation.also {
-                    println("$incomingSource $sourceLocation maps to $destination $it")
+                    println("$incomingSource $sourceLocation maps to $destinationName $it")
                 }
             }
         }
     }
 
+    data class StartLength(
+        val start: Long,
+        val length: Long
+    )
+
     @Test
-    fun day5_pt1() {
-        val seedIds = mutableListOf<Long>()
+    fun day5_pt2() = runTest {
+        val seedRanges = mutableListOf<StartLength>()
         val maps = mutableListOf<Map>()
         var inputIndex = 0
         var latestMap = Map()
@@ -84,19 +97,21 @@ class Day5Part2 {
                 // seeds: 79 14 55 13
                 val seedsAndIds = input.split(":").mapTrimmed()
 
-                seedIds.addAll(seedsAndIds[1].split(" ").map {
+                val ids = seedsAndIds[1].split(" ").map {
                     it.trim().toLong()
-                })
+                }
+                seedRanges.addAll(ids.chunked(2).map { StartLength(it[0], it[1]) })
             } else if (input.isNotEmpty()) {
                 // seed-to-soil map:
                 // 50 98 2
                 // 52 50 48
                 if (input.contains(":")) {
-                    // seed-to-soil
+                    // seed-to-soil map:
                     val sourceToDestination = input.split("-").mapTrimmed()
                     latestMap = latestMap.copy(
-                        source = sourceToDestination[0],
-                        destination = sourceToDestination[2]
+                        sourceName = sourceToDestination[0],
+                        //soil map:
+                        destinationName = sourceToDestination[2].split(" ")[0]
                     )
                 } else {
                     // create mappings
@@ -108,7 +123,7 @@ class Day5Part2 {
                     )
                 }
             } else {
-                if (latestMap.source.isNotEmpty()) {
+                if (latestMap.sourceName.isNotEmpty()) {
                     maps.add(latestMap)
                 }
 
@@ -121,22 +136,23 @@ class Day5Part2 {
         }
 
         // add the last one generated
-        if (latestMap.source.isNotEmpty()) {
+        if (latestMap.sourceName.isNotEmpty()) {
             maps.add(latestMap)
         }
 
         var lowestLocation = Long.MAX_VALUE
-        seedIds.forEach { seedId ->
-            var currentId = seedId
-            var currentSource = "seed"
-            maps.forEach { map ->
-                currentSource = map.source
-                currentId = map.destination(currentSource, currentId)
-            }
-            // we're at the last humidity-to-location map
-            lowestLocation = Math.min(currentId, lowestLocation)
-        }
 
-        assert(lowestLocation == 510109797L)
+
+        maps.last().buildKnownRanges()
+        val upper = maps.last().getUpperBoundOfRange()
+
+        // Giving up for now.... I'm guessing we have to
+        // reverse the tree to find a range of acceptable inputs
+        // instead of iterating through the seeds
+        // since that will take too long
+
+        println("lowestLocation $lowestLocation")
+
+        assert(lowestLocation == 46L)
     }
 }
