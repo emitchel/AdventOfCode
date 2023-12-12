@@ -1,8 +1,6 @@
 package com.erm.adventofcode.twenty_three
 
 import com.erm.adventofcode.twenty_three.Util.readLinesFromTextInput
-import java.lang.Long.max
-import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class Day5Part2 {
@@ -10,47 +8,66 @@ class Day5Part2 {
     data class Map(
         val sourceName: String = "",
         val destinationName: String = "",
-        val mappings: List<String> = emptyList()
+        val inputMappings: List<String> = emptyList()
     ) {
 
-        private val knownMappingSourceToRange = mutableMapOf<Long, Long>()
+        data class Mapping(val destination: LongRange, val source: LongRange)
 
-        data class DestinationToSourceRange(
-            val destinationStart: Long,
-            val sourceStart: Long,
-            val range: Long
+        class MappingTreeNode(
+            var mapping: Mapping,
+            var left: MappingTreeNode? = null,
+            var right: MappingTreeNode? = null
         )
 
-        val destinationToSourceRanges = mutableListOf<DestinationToSourceRange>()
+        class IntervalTree {
+            var root: MappingTreeNode? = null
 
-        fun getUpperBoundOfRange(): Long {
-            val maxSource = destinationToSourceRanges.maxBy { it.range + it.sourceStart }.run {
-                range + sourceStart
+            fun insert(mapping: Mapping) {
+                root = insert(root, mapping)
             }
-            val maxDestination =
-                destinationToSourceRanges.maxBy { it.range + it.destinationStart }.run {
-                    range + destinationStart
+
+            private fun insert(node: MappingTreeNode?, mapping: Mapping): MappingTreeNode {
+                if (node == null) return MappingTreeNode(mapping)
+
+                if (mapping.source.first < node.mapping.source.first) {
+                    node.left = insert(node.left, mapping)
+                } else {
+                    node.right = insert(node.right, mapping)
                 }
-            return max(maxSource, maxDestination)
+
+                return node
+            }
+
+            fun query(number: Long): Mapping? {
+                return query(root, number)
+            }
+
+            private fun query(node: MappingTreeNode?, number: Long): Mapping? {
+                if (node == null) return null
+
+                if (node.mapping.source.contains(number)) {
+                    return node.mapping
+                }
+
+                if (number < node.mapping.source.first) {
+                    return query(node.left, number)
+                }
+
+                return query(node.right, number)
+            }
         }
 
-        fun buildKnownRanges() {
-            if (destinationToSourceRanges.isNotEmpty()) return
-            mappings.forEach { mapping ->
-                // destinationLocation, sourceLocation, range
-                // 50 98 2
-                val destinationSourceRange = mapping.split(" ").map {
-                    it.trim().toLong()
-                }
-                val destinationStart = destinationSourceRange[0]
-                val sourceStart = destinationSourceRange[1]
-                val range = destinationSourceRange[2]
+        private var tree = IntervalTree()
 
-                destinationToSourceRanges.add(
-                    DestinationToSourceRange(
-                        destinationStart = destinationStart,
-                        sourceStart = sourceStart,
-                        range = range
+        fun buildIntervalTree() {
+            tree = IntervalTree()
+            inputMappings.forEach { mapping ->
+                val (destinationStart, sourceStart, range) = mapping.split(" ")
+                    .map { it.trim().toLong() }
+                tree.insert(
+                    Mapping(
+                        LongRange(destinationStart, destinationStart + range - 1),
+                        LongRange(sourceStart, sourceStart + range - 1)
                     )
                 )
             }
@@ -63,31 +80,22 @@ class Day5Part2 {
                 throw IllegalStateException("Can't map $incomingSource to this $sourceName-to-$destinationName map")
             }
 
-            buildKnownRanges()
-
-            destinationToSourceRanges.firstOrNull {
-                sourceLocation >= it.sourceStart && sourceLocation < it.sourceStart + it.range
-            }?.let {
-                val difference = sourceLocation - it.sourceStart
-                return (it.destinationStart + difference).also {
-                    println("$incomingSource $sourceLocation maps to $destinationName $it")
+            return tree.query(sourceLocation)?.let {
+                val difference = sourceLocation - it.source.first
+                return (it.destination.first + difference).also {
+//                    println("$incomingSource $sourceLocation maps to $destinationName $it")
                 }
             } ?: run {
                 return sourceLocation.also {
-                    println("$incomingSource $sourceLocation maps to $destinationName $it")
+//                    println("$incomingSource $sourceLocation maps to $destinationName $it")
                 }
             }
         }
     }
 
-    data class StartLength(
-        val start: Long,
-        val length: Long
-    )
-
     @Test
-    fun day5_pt2() = runTest {
-        val seedRanges = mutableListOf<StartLength>()
+    fun day5_pt2() {
+        val seedRanges = mutableListOf<LongRange>()
         val maps = mutableListOf<Map>()
         var inputIndex = 0
         var latestMap = Map()
@@ -100,7 +108,11 @@ class Day5Part2 {
                 val ids = seedsAndIds[1].split(" ").map {
                     it.trim().toLong()
                 }
-                seedRanges.addAll(ids.chunked(2).map { StartLength(it[0], it[1]) })
+                seedRanges.addAll(ids.chunked(2).map {
+                    val start = it[0]
+                    val end = it[1]
+                    LongRange(start, start + end - 1)
+                })
             } else if (input.isNotEmpty()) {
                 // seed-to-soil map:
                 // 50 98 2
@@ -117,7 +129,7 @@ class Day5Part2 {
                     // create mappings
                     // 50 98 2
                     latestMap = latestMap.copy(
-                        mappings = latestMap.mappings.toMutableList().apply {
+                        inputMappings = latestMap.inputMappings.toMutableList().apply {
                             add(input)
                         }
                     )
@@ -140,19 +152,29 @@ class Day5Part2 {
             maps.add(latestMap)
         }
 
+
+        maps.forEach {
+            it.buildIntervalTree()
+        }
+
         var lowestLocation = Long.MAX_VALUE
 
+        seedRanges.forEach { seedRange ->
+            seedRange.forEach { seedId ->
+                var currentId = seedId
+                var currentSource = "seed"
+                maps.forEach { map ->
+//                    println("${map.sourceName} $currentId")
+                    currentSource = map.sourceName
+                    currentId = map.destination(currentSource, currentId)
+//                    println("maps to ${map.destinationName} $currentId")
+                }
+                // we're at the last humidity-to-location map
+                lowestLocation = Math.min(currentId, lowestLocation)
+            }
+        }
 
-        maps.last().buildKnownRanges()
-        val upper = maps.last().getUpperBoundOfRange()
-
-        // Giving up for now.... I'm guessing we have to
-        // reverse the tree to find a range of acceptable inputs
-        // instead of iterating through the seeds
-        // since that will take too long
-
-        println("lowestLocation $lowestLocation")
-
+        println("lowest location: $lowestLocation")
         assert(lowestLocation == 46L)
     }
 }
