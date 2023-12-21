@@ -2,7 +2,7 @@ package com.erm.adventofcode.twenty_three
 
 import org.junit.Test
 
-class Day7 {
+class Day7Part1 {
 
     sealed class Card(val card: Char, val ranking: Int) {
         companion object {
